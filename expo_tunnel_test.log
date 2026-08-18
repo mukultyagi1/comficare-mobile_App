@@ -1,0 +1,8 @@
+npm notice run comficare-mobile@0.0.1 npx
+npm notice run expo start --tunnel --port 8098
+Starting project at C:\Users\mukul\Documents\comficare\comficare-mobile
+Starting Metro Bundler
+
+CommandError: Input is required, but 'npx expo' is in non-interactive mode.
+Required input:
+> The package @expo/ngrok@^4.1.0 is required to use tunnels, would you like to install it globally?
