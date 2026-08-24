@@ -9,7 +9,10 @@ export function isLive(location) {
   return Date.now() - new Date(location.updatedAt).getTime() < LIVE_STALE_AFTER_MS;
 }
 
-export function osmEmbedUrl(latitude, longitude, delta = 0.006) {
-  const bbox = [longitude - delta, latitude - delta, longitude + delta, latitude + delta].join(',');
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&marker=${latitude},${longitude}&layer=mapnik`;
+// Single-point map embed via Google's Maps Embed API, shown inside a
+// WebView — matches comficare-frontend's googleMapsEmbedUrl (utils/geocode.js).
+// Needs "Maps Embed API" enabled for EXPO_PUBLIC_GOOGLE_MAPS_API_KEY.
+export function mapEmbedUrl(latitude, longitude, zoom = 16) {
+  const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  return `https://www.google.com/maps/embed/v1/place?key=${key}&q=${latitude},${longitude}&zoom=${zoom}`;
 }

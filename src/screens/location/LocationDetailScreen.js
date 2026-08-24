@@ -3,10 +3,10 @@ import { SafeAreaView, StyleSheet, View } from 'react-native';
 import { Badge, Text } from 'react-native-paper';
 import { WebView } from 'react-native-webview';
 import { onLocationUpdate } from '../../locationSocket';
-import { isLive, osmEmbedUrl } from '../../utils/location';
+import { isLive, mapEmbedUrl } from '../../utils/location';
 import { colors } from '../../theme';
 
-// Matches comficare-frontend's LocationDetailPanel.jsx: same OSM iframe
+// Matches comficare-frontend's LocationDetailPanel.jsx: same Google Maps
 // embed formula, kept live via the same location:update socket broadcast.
 export default function LocationDetailScreen({ route }) {
   const [employee, setEmployee] = useState(route.params.employee);
@@ -46,7 +46,7 @@ export default function LocationDetailScreen({ route }) {
       </View>
 
       {location?.latitude != null && location?.longitude != null ? (
-        <WebView source={{ uri: osmEmbedUrl(location.latitude, location.longitude) }} style={styles.map} />
+        <WebView source={{ uri: mapEmbedUrl(location.latitude, location.longitude) }} style={styles.map} />
       ) : (
         <View style={styles.center}>
           <Text style={styles.empty}>No location shared yet.</Text>
