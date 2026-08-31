@@ -191,7 +191,7 @@ export default function DashboardScreen() {
     <ScrollView style={styles.safeArea} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <View style={styles.container}>
         <Text variant="titleLarge" style={styles.greeting}>
-          Hi, {user?.userName ?? user?.email}
+          Hi, {user?.displayName ?? user?.userName ?? user?.email}
         </Text>
         <Text style={[styles.locationLabel, { color: locationLabel.color }]}>{locationLabel.text}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}

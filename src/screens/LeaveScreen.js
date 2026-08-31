@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, SafeAreaView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, FAB, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Checkbox, Chip, FAB, Text } from 'react-native-paper';
 import { useSession } from '../SessionContext';
 import { leavesApi } from '../api/leave';
 import ApplyLeaveModal from '../components/ApplyLeaveModal';
 import { colors, statusColors } from '../theme';
 
-// Matches comficare-frontend's LeaveManagementPage.jsx scope (Phase 1: view +
-// apply + approve/reject; attachments and bulk actions stay web-only for
+// Matches comficare-frontend's LeaveManagementPage.jsx scope (view + apply +
+// approve/reject, individually or in bulk; attachments stay web-only for
 // now). Visible to any signed-in user (no nav permission gate), same as web.
 export default function LeaveScreen() {
   const { user, hasPermission } = useSession();
@@ -19,12 +19,15 @@ export default function LeaveScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [applyModalVisible, setApplyModalVisible] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkActing, setBulkActing] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setError(null);
       const data = await leavesApi.listRequests({});
       setRequests(data?.items ?? []);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,6 +55,30 @@ export default function LeaveScreen() {
     load();
   }, [load]);
 
+  const toggleSelected = useCallback((id) => {
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]));
+  }, []);
+
+  const approveSelected = useCallback(async () => {
+    setBulkActing(true);
+    try {
+      await leavesApi.approveRequests(selectedIds);
+      await load();
+    } finally {
+      setBulkActing(false);
+    }
+  }, [selectedIds, load]);
+
+  const rejectSelected = useCallback(async () => {
+    setBulkActing(true);
+    try {
+      await leavesApi.rejectRequests(selectedIds);
+      await load();
+    } finally {
+      setBulkActing(false);
+    }
+  }, [selectedIds, load]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -62,6 +89,20 @@ export default function LeaveScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {selectedIds.length > 0 && (
+        <View style={styles.selectionBar}>
+          <Text style={styles.selectionCount}>{selectedIds.length} selected</Text>
+          <Button compact onPress={() => setSelectedIds([])} disabled={bulkActing}>
+            Clear
+          </Button>
+          <Button compact textColor={colors.error} onPress={rejectSelected} loading={bulkActing} disabled={bulkActing}>
+            Reject
+          </Button>
+          <Button compact mode="contained" onPress={approveSelected} loading={bulkActing} disabled={bulkActing}>
+            Approve
+          </Button>
+        </View>
+      )}
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id}
@@ -71,6 +112,12 @@ export default function LeaveScreen() {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <View style={styles.row}>
+            {canManage && item.status === 'PENDING' && (
+              <Checkbox
+                status={selectedIds.includes(item.id) ? 'checked' : 'unchecked'}
+                onPress={() => toggleSelected(item.id)}
+              />
+            )}
             <View style={styles.flex}>
               <Text variant="bodyLarge">
                 {item.employee?.firstName} {item.employee?.lastName}
@@ -121,4 +168,6 @@ const styles = StyleSheet.create({
   error: { color: colors.error, padding: 16 },
   empty: { color: colors.textMuted, padding: 24, textAlign: 'center' },
   fab: { position: 'absolute', right: 16, bottom: 16, backgroundColor: colors.primary },
+  selectionBar: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.border },
+  selectionCount: { flex: 1, color: colors.textSecondary, fontWeight: '600' },
 });

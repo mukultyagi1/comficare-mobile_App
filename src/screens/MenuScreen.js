@@ -1,8 +1,9 @@
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Divider, List, Text } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSession } from '../SessionContext';
 import { navItems } from '../navigation/navItems';
+import { WS_BASE_URL } from '../config';
 import { colors } from '../theme';
 
 // Replaces a swipe drawer (which pulled in react-native-reanimated —
@@ -19,15 +20,20 @@ export default function MenuScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.profile}>
-        <Avatar.Text size={48} label={(user?.userName ?? user?.email ?? '?').slice(0, 2).toUpperCase()} />
+      <Pressable style={styles.profile} onPress={() => navigation.navigate('Profile')}>
+        {user?.avatarUrl ? (
+          <Avatar.Image size={48} source={{ uri: `${WS_BASE_URL}${user.avatarUrl}` }} />
+        ) : (
+          <Avatar.Text size={48} label={(user?.displayName ?? user?.userName ?? user?.email ?? '?').slice(0, 2).toUpperCase()} />
+        )}
         <View style={styles.profileText}>
-          <Text variant="titleMedium">{user?.userName ?? user?.email}</Text>
+          <Text variant="titleMedium">{user?.displayName ?? user?.userName ?? user?.email}</Text>
           <Text variant="bodySmall" style={styles.role}>
             {role?.label ?? role?.code ?? ''}
           </Text>
         </View>
-      </View>
+        <List.Icon icon="chevron-right" />
+      </Pressable>
       <Divider />
       <List.Section style={styles.list}>
         {visibleItems.map((item) => (

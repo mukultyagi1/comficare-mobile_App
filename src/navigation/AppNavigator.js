@@ -3,13 +3,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { IconButton } from 'react-native-paper';
 import MenuScreen from '../screens/MenuScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import LocationTeamListScreen from '../screens/location/LocationTeamListScreen';
-import LocationDetailScreen from '../screens/location/LocationDetailScreen';
-import DirectoryListScreen from '../screens/directory/DirectoryListScreen';
-import DirectoryDetailScreen from '../screens/directory/DirectoryDetailScreen';
-import RosterScreen from '../screens/RosterScreen';
 import LeaveScreen from '../screens/LeaveScreen';
 import TimesheetScreen from '../screens/TimesheetScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -31,13 +27,9 @@ export default function AppNavigator() {
       >
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Self Service' }} />
         <Stack.Screen name="Menu" component={MenuScreen} options={{ title: 'Comficare' }} />
-        <Stack.Screen name="LocationList" component={LocationTeamListScreen} options={{ title: 'Team Location' }} />
-        <Stack.Screen name="LocationDetail" component={LocationDetailScreen} options={{ title: 'Location' }} />
-        <Stack.Screen name="DirectoryList" component={DirectoryListScreen} options={{ title: 'Directory' }} />
-        <Stack.Screen name="DirectoryDetail" component={DirectoryDetailScreen} options={{ title: 'Details' }} />
-        <Stack.Screen name="Roster" component={RosterScreen} options={{ title: 'Roster' }} />
         <Stack.Screen name="Leave" component={LeaveScreen} options={{ title: 'Leave Management' }} />
         <Stack.Screen name="Timesheet" component={TimesheetScreen} options={{ title: 'Timesheet' }} />
+        <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'My Profile' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>
     </NavigationContainer>

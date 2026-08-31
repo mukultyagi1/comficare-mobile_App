@@ -13,9 +13,9 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Avatar.Text size={64} label={(user?.userName ?? user?.email ?? '?').slice(0, 2).toUpperCase()} style={styles.avatar} />
+        <Avatar.Text size={64} label={(user?.displayName ?? user?.userName ?? user?.email ?? '?').slice(0, 2).toUpperCase()} style={styles.avatar} />
         <Text variant="titleLarge" style={styles.name}>
-          {user?.userName ?? user?.email}
+          {user?.displayName ?? user?.userName ?? user?.email}
         </Text>
         <Text style={styles.role}>{role?.label ?? role?.code ?? ''}</Text>
         <Button mode="contained" icon="logout" buttonColor={colors.error} onPress={signOut} style={styles.signOut}>

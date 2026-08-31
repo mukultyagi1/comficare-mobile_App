@@ -69,6 +69,25 @@ export function SessionProvider({ children }) {
     setState(SIGNED_OUT_STATE);
   }, []);
 
+  // Re-fetches /auth/me and refreshes the cached session — used after
+  // ProfileScreen updates the display name or avatar, so the change shows up
+  // immediately instead of waiting for the next sign-in (mirrors
+  // comficare-frontend/src/api/auth.js's refreshCurrentUser).
+  const refreshUser = useCallback(async () => {
+    const fresh = await authApi.me();
+    if (fresh?.user) {
+      const next = {
+        sessionToken: state.sessionToken,
+        user: fresh.user,
+        role: fresh.role ?? null,
+        permissions: fresh.permissions ?? [],
+      };
+      await persistSession(next);
+      setState({ status: 'signedIn', ...next });
+    }
+    return fresh?.user;
+  }, [state.sessionToken]);
+
   const hasPermission = useCallback((code) => state.permissions.includes(code), [state.permissions]);
 
   // codes of null/undefined means "visible to any signed-in user", matching
@@ -204,8 +223,8 @@ export function SessionProvider({ children }) {
   }, [state.status]);
 
   const value = useMemo(
-    () => ({ ...state, locationStatus, locationServicesEnabled, signIn, signOut, hasPermission, hasAnyPermission }),
-    [state, locationStatus, locationServicesEnabled, signIn, signOut, hasPermission, hasAnyPermission],
+    () => ({ ...state, locationStatus, locationServicesEnabled, signIn, signOut, refreshUser, hasPermission, hasAnyPermission }),
+    [state, locationStatus, locationServicesEnabled, signIn, signOut, refreshUser, hasPermission, hasAnyPermission],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

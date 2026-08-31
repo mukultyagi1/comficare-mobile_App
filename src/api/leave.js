@@ -10,5 +10,7 @@ export const leavesApi = {
     apiPost('/leave-management/requests', { empId, leaveTypeId, startDate, endDate, comments }),
   approveRequest: (id, comments) => apiPut(`/leave-management/requests/${id}/approve`, comments ? { comments } : undefined),
   rejectRequest: (id, comments) => apiPut(`/leave-management/requests/${id}/reject`, comments ? { comments } : undefined),
+  approveRequests: (ids, comments) => apiPut('/leave-management/requests/bulk/approve', { ids, ...(comments ? { comments } : {}) }),
+  rejectRequests: (ids, comments) => apiPut('/leave-management/requests/bulk/reject', { ids, ...(comments ? { comments } : {}) }),
   cancelRequest: (id) => apiPut(`/leave-management/requests/${id}/cancel`),
 };
