@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import { authApi } from './api/auth';
 import { clearSession, loadSession, persistSession } from './session';
-import { connectLocationSocket, disconnectLocationSocket, shareLocation, stopSharing } from './locationSocket';
+import { connectLocationSocket, disconnectLocationSocket, reconnectLocationSocket, shareLocation, stopSharing } from './locationSocket';
 import { LOCATION_TASK_NAME } from './backgroundLocationTask';
 
 // React-facing wrapper around session.js: owns in-memory state so screens
@@ -220,6 +221,29 @@ export function SessionProvider({ children }) {
       cancelled = true;
       clearInterval(interval);
     };
+  }, [state.status]);
+
+  // watchPositionAsync's subscription survives backgrounding, but a long
+  // suspension (screen off, app backgrounded, or OS-throttled timers) can
+  // leave the phone showing Offline on the web Location page for a while
+  // after the employee reopens the app, since the next update only arrives
+  // on the watch's normal 5s cadence. Firing an immediate one-off fix the
+  // moment the app returns to the foreground (plus nudging the socket to
+  // reconnect if it dropped) makes "Live" reappear right away instead of
+  // waiting on that cadence.
+  useEffect(() => {
+    if (state.status !== 'signedIn') return undefined;
+    const listener = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') return;
+      reconnectLocationSocket();
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+        .then((position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          shareLocation({ latitude, longitude, accuracy: accuracy ?? undefined });
+        })
+        .catch(() => {});
+    });
+    return () => listener.remove();
   }, [state.status]);
 
   const value = useMemo(

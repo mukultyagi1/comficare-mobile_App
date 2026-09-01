@@ -35,6 +35,16 @@ export function shareLocation({ latitude, longitude, accuracy }) {
   socket?.emit('location:share', { latitude, longitude, accuracy });
 }
 
+// The socket has reconnection enabled by default, but a long background
+// suspension (screen off, app backgrounded) can leave it in a disconnected
+// state that doesn't reconnect promptly on its own — called from
+// SessionContext's AppState listener when the app returns to the
+// foreground, so a fresh location:share goes out immediately instead of
+// waiting on the next reconnect attempt.
+export function reconnectLocationSocket() {
+  if (socket && !socket.connected) socket.connect();
+}
+
 export function stopSharing() {
   socket?.emit('location:stop');
 }

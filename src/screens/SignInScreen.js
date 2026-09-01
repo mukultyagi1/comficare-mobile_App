@@ -1,15 +1,21 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { useSession } from '../SessionContext';
+import { tenantApi } from '../api/tenant';
+import { WS_BASE_URL } from '../config';
 import { colors as COLORS } from '../theme';
 
-// Mirrors comficare-frontend/src/pages/SignInPage.jsx's look — same logo,
-// copy, and color tokens (comficare-frontend/src/styles/tokens.css) — so
-// signing in feels like the same product on both platforms. Skips
-// remember-me and the signup/forgot-password links, since those flows
-// aren't built on mobile yet (Phase 1 is sign-in only).
-
+// Mirrors comficare-frontend/src/pages/SignInPage.jsx's look — same copy and
+// color tokens (comficare-frontend/src/styles/tokens.css) — so signing in
+// feels like the same product on both platforms. Skips remember-me and the
+// signup/forgot-password links, since those flows aren't built on mobile yet
+// (Phase 1 is sign-in only).
+//
+// The logo comes from GET /tenants/branding (public, no session needed) —
+// whatever the org uploaded via Settings → Application Logo on web — same as
+// comficare-frontend's useTenantBranding/BrandLogo. No logo shown at all if
+// none has been uploaded yet, matching BrandLogo.jsx's behavior.
 export default function SignInScreen() {
   const { signIn } = useSession();
   const [email, setEmail] = useState('');
@@ -17,6 +23,14 @@ export default function SignInScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(null);
+  const [logoUrl, setLogoUrl] = useState(null);
+
+  useEffect(() => {
+    tenantApi
+      .getBranding()
+      .then((branding) => setLogoUrl(branding?.logoUrl ? `${WS_BASE_URL}${branding.logoUrl}` : null))
+      .catch(() => setLogoUrl(null));
+  }, []);
 
   const handleSignIn = useCallback(async () => {
     setError(null);
@@ -35,12 +49,12 @@ export default function SignInScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Image source={require('../../assets/pravar-logo.png')} style={styles.logo} resizeMode="contain" />
+            {logoUrl ? <Image source={{ uri: logoUrl }} style={styles.logo} resizeMode="contain" /> : null}
             <Text variant="headlineSmall" style={styles.title}>
               Welcome back
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Sign in to your Comficare account
+              Sign in to your account
             </Text>
 
             {error ? (

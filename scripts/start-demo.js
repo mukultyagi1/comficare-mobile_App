@@ -17,6 +17,7 @@
 
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -48,7 +49,21 @@ function resolveCloudflaredBin() {
 
 function openTunnel(cloudflaredBin, port, label) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cloudflaredBin, ['tunnel', '--url', `http://localhost:${port}`]);
+    // --edge-ip-version 4: this machine's IPv6 route to Cloudflare's edge is
+    // broken ("wsasendto: A socket operation was attempted to an unreachable
+    // network"). Forcing IPv4 fixed *that* failure mode, but the QUIC
+    // control stream kept flapping anyway ("control stream encountered a
+    // failure while serving" / "context canceled", every 15-20s) even over
+    // IPv4 — QUIC runs over UDP, and something on this network (firewall,
+    // AV, NAT) is killing long-lived UDP flows outright. --protocol http2
+    // forces cloudflared onto HTTP/2-over-TCP instead, sidestepping UDP
+    // entirely — the standard fix for exactly this class of flapping.
+    const child = spawn(cloudflaredBin, [
+      'tunnel',
+      '--edge-ip-version', '4',
+      '--protocol', 'http2',
+      '--url', `http://localhost:${port}`,
+    ]);
     let resolved = false;
 
     const timeout = setTimeout(() => {
@@ -90,7 +105,38 @@ function writeBackendUrl(backendUrl) {
   fs.writeFileSync(ENV_PATH, lines.join('\n') + '\n');
 }
 
+// Running this a second time while a dev server (this script or a plain
+// `expo start`) already owns METRO_PORT doesn't queue or fail cleanly — Expo
+// CLI prompts "Use port 8082 instead?" and, left unanswered in a
+// non-interactive/background terminal, just hangs or skips starting
+// entirely, while the tunnels it already opened before that prompt keep
+// running and overwrite .env's EXPO_PUBLIC_BACKEND_URL with a second,
+// competing tunnel URL — silently breaking whatever was already working.
+// Bail out up front instead of walking into that.
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ port, host: '127.0.0.1' });
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => resolve(false));
+    socket.setTimeout(1000, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
 async function main() {
+  if (await isPortInUse(METRO_PORT)) {
+    console.error(
+      `Port ${METRO_PORT} is already in use — a dev server (this script, or a plain "expo start") is already running.`,
+    );
+    console.error('Stop that one first (or just use it) before running `npm run demo` again.');
+    process.exit(1);
+  }
+
   const cloudflaredBin = resolveCloudflaredBin();
   if (!cloudflaredBin) {
     console.error('Could not find cloudflared on PATH or in its default install location.');

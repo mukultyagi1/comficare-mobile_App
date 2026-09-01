@@ -72,7 +72,7 @@ export default function ApplyLeaveModal({ visible, onDismiss, employeeId, onSubm
                 onPress={() => setForm((f) => ({ ...f, leaveTypeId: type.id }))}
                 style={styles.chip}
               >
-                {type.name ?? type.leaveTypeName ?? type.id}
+                {type.type}
               </Chip>
             ))}
           </View>
