@@ -1,9 +1,12 @@
 import Constants from 'expo-constants';
 
-// Same tenant as comficare-frontend/.env (VITE_TENANT_ID) — this app talks to
-// the same backend/tenant as the web app, so location shared here shows up
-// on the web Location page immediately.
-export const TENANT_ID = 'b140fe5c-dffe-4802-9a72-94a5bcc595bb';
+// Same tenant as the deployed web app (comficare-frontend/.env.production's
+// VITE_TENANT_ID, the Render-hosted backend's actual tenant) — this app talks
+// to the same backend/tenant as the web app, so location shared here shows
+// up on the web Location page immediately. Not comficare-frontend/.env's
+// (local-dev-only) tenant id — that's a different tenant on a different
+// (local) database this app has no way to reach on a phone anyway.
+export const TENANT_ID = 'vill-del-sole-TN-1';
 
 const BACKEND_PORT = 3002;
 
