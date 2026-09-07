@@ -128,17 +128,21 @@ export default function DashboardScreen() {
       setClockActionLoading(true);
       setError(null);
       try {
+        // Every action below is a shift-lifecycle edge (clock-in/out,
+        // break-start/end) and the backend requires a current fix for each
+        // one (see timesheetsApi) — not just clock-in.
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') throw new Error('Location permission is required.');
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+
         if (action === 'clockIn') {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') throw new Error('Location permission is required to clock in.');
-          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           await timesheetsApi.clockIn(employeeId, position.coords);
         } else if (action === 'clockOut') {
-          await timesheetsApi.clockOut(employeeId);
+          await timesheetsApi.clockOut(employeeId, position.coords);
         } else if (action === 'startBreak') {
-          await timesheetsApi.startBreak(employeeId);
+          await timesheetsApi.startBreak(employeeId, position.coords);
         } else if (action === 'endBreak') {
-          await timesheetsApi.endBreak(employeeId);
+          await timesheetsApi.endBreak(employeeId, position.coords);
         }
         await load();
       } catch (err) {
