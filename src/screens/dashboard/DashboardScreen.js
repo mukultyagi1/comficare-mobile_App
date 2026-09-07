@@ -27,6 +27,15 @@ function TileIcon({ icon }) {
   return <Avatar.Icon size={36} icon={icon} style={styles.tileIcon} color={colors.primary} />;
 }
 
+// Local-calendar-day date string (not toISOString, which is UTC and can
+// land on the wrong day near midnight) — matches comficare-frontend's
+// toISODate helper.
+function toLocalISODate(date) {
+  const d = new Date(date);
+  const offsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
 export default function DashboardScreen() {
   const { user, hasAnyPermission, locationStatus, locationServicesEnabled } = useSession();
   const employeeId = user?.employeeId;
@@ -37,6 +46,12 @@ export default function DashboardScreen() {
   const [error, setError] = useState(null);
 
   const [openEvent, setOpenEvent] = useState(null); // latest unfinished START/BREAK event
+  // True once today's shift has been clocked in AND out already — matches
+  // comficare-frontend/src/pages/DashboardPage.jsx's completedShiftToday:
+  // Clock in stays hidden for the rest of the day so it can't be started
+  // again (the backend itself only blocks a *second concurrent* clock-in,
+  // not a second full shift the same day — this is the client-side gate).
+  const [completedShiftToday, setCompletedShiftToday] = useState(false);
   const [clockActionLoading, setClockActionLoading] = useState(false);
 
   const [myShifts, setMyShifts] = useState([]);
@@ -54,17 +69,25 @@ export default function DashboardScreen() {
     }
     try {
       setError(null);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
       const [events, leave, swaps, rosters] = await Promise.all([
-        timesheetsApi.listEvents({ employeeId, pageSize: 5 }),
+        timesheetsApi.listEvents({ employeeId, dateFrom: toLocalISODate(yesterday) }),
         leavesApi.listRequests({}),
         swapRequestsApi.list({ employeeId }),
         rostersApi.list(user?.deptId ? { departmentId: user.deptId } : undefined),
       ]);
 
-      const openEvents = (events?.items ?? []).filter((e) => !e.endTime);
+      const eventItems = events?.items ?? [];
+      const openEvents = eventItems.filter((e) => !e.endTime);
       const openBreak = openEvents.find((e) => e.type === 'BREAK');
       const openStart = openEvents.find((e) => e.type === 'START');
       setOpenEvent(openBreak ?? openStart ?? null);
+
+      const todayIso = toLocalISODate(new Date());
+      setCompletedShiftToday(
+        eventItems.some((e) => e.type === 'START' && e.endTime && toLocalISODate(e.startTime) === todayIso),
+      );
 
       const allLeave = leave?.items ?? [];
       setMyLeave(allLeave.filter((item) => item.employee?.id === employeeId));
@@ -105,10 +128,10 @@ export default function DashboardScreen() {
   const clockStatusKey = !openEvent ? 'off' : openEvent.type === 'BREAK' ? 'break' : 'on';
 
   const clockLabel = useMemo(() => {
-    if (!openEvent) return 'Clock in to start your shift';
+    if (!openEvent) return completedShiftToday ? "You've already completed your shift for today" : 'Clock in to start your shift';
     const since = new Date(openEvent.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return openEvent.type === 'BREAK' ? `On break since ${since}` : `Clocked in since ${since}`;
-  }, [openEvent]);
+  }, [openEvent, completedShiftToday]);
 
   const locationLabel = useMemo(() => {
     const permissionGranted = locationStatus === 'granted' || locationStatus === 'granted:foreground-only';
@@ -210,7 +233,7 @@ export default function DashboardScreen() {
             </View>
             <Text style={styles.clockSubtext}>{clockLabel}</Text>
             <View style={styles.buttonRow}>
-              {!openEvent && (
+              {!openEvent && !completedShiftToday && (
                 <Button mode="contained" onPress={() => runClockAction('clockIn')} loading={clockActionLoading} disabled={clockActionLoading}>
                   Clock in
                 </Button>

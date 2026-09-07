@@ -197,7 +197,17 @@ export function SessionProvider({ children }) {
       cancelled = true;
       subscription?.remove();
       if (backgroundStarted) {
-        Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => {});
+        // Mirrors the try/catch around the matching start call above — on a
+        // build that predates the background-location rebuild this can
+        // throw synchronously, and an uncaught throw here (during sign-out)
+        // would crash past App.js's ErrorBoundary since it runs in a
+        // cleanup, not a render.
+        try {
+          Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => {});
+        } catch {
+          // Same native-module gap as the start call — never let a stop
+          // failure take sign-out down with it.
+        }
       }
       stopSharing();
     };

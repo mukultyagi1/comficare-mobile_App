@@ -55,15 +55,22 @@ function Root() {
 }
 
 export default function App() {
+  // ErrorBoundary must wrap SessionProvider, not sit inside it — React can
+  // only localize a thrown error to the nearest boundary ABOVE where it was
+  // thrown. SessionProvider's own effects (location socket / background
+  // tracking teardown on sign-out) run outside any boundary if it's nested
+  // the other way around, so an error there would unmount the entire app
+  // instead of falling back to the recoverable screen below — the blank
+  // white screen users hit right after signing out.
   return (
-    <SessionProvider>
-      <PaperProvider theme={paperTheme}>
-        <StatusBar style="auto" />
-        <ErrorBoundary>
+    <ErrorBoundary>
+      <SessionProvider>
+        <PaperProvider theme={paperTheme}>
+          <StatusBar style="auto" />
           <Root />
-        </ErrorBoundary>
-      </PaperProvider>
-    </SessionProvider>
+        </PaperProvider>
+      </SessionProvider>
+    </ErrorBoundary>
   );
 }
 
